@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Courses - Lecturer Panel</title>
+    <link rel="stylesheet" href="../css/lecturer.css">
+</head>
+<body>
+    <div class="lecturer-layout">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>🎓 Lecturer Panel</h2>
+                <p id="lecturerName">Loading...</p>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html">📊 Dashboard</a></li>
+                <li><a href="courses.html" class="active">📚 Courses</a></li>
+                <li><a href="students.html">👨‍🎓 Students</a></li>
+                <li><a href="alerts.html">🚨 Alerts</a></li>
+                <li><a href="#" onclick="logout()">🚪 Logout</a></li>
+            </ul>
+        </nav>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1>My Courses</h1>
+                <div class="header-actions">
+                    <input type="text" id="searchInput" placeholder="Search courses..." onkeyup="filterCourses()">
+                </div>
+            </header>
+            
+            <!-- Courses Grid -->
+            <div class="courses-grid" id="coursesGrid">
+                <div class="loading">Loading courses...</div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Course Details Modal -->
+    <div id="courseDetailsModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="courseModalTitle">Course Details</h3>
+                <button class="modal-close" onclick="closeCourseModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="course-details-container" id="courseDetailsContainer">
+                    <!-- Course details will be loaded here -->
+                </div>
+                
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('students')">👨‍🎓 Students</button>
+                    <button class="tab-btn" onclick="switchTab('events')">📅 Events</button>
+                    <button class="tab-btn" onclick="switchTab('alerts')">🚨 Alerts</button>
+                </div>
+                
+                <div id="tabContent" class="tab-content">
+                    <!-- Tab content will be loaded here -->
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeCourseModal()">Close</button>
+                <button type="button" class="btn-primary" id="sendAlertBtn">Send Alert</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="../js/lecturer.js"></script>
+    <script>
+        let allCourses = [];
+        let currentCourse = null;
+        let currentTab = 'students';
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadCourses();
+        });
+        
+        async function loadCourses() {
+            try {
+                // Get lecturer ID from stored user data
+                const user = JSON.parse(localStorage.getItem('user'));
+                const lecturerId = user.id;
+                
+                // Load courses
+                const response = await apiCall(`/users/lecturer/${lecturerId}/courses`);
+                allCourses = response.courses || [];
+                
+                displayCourses(allCourses);
+            } catch (error) {
+                console.error('Failed to load courses:', error);
+                document.getElementById('coursesGrid').innerHTML = '<div class="error">Failed to load courses</div>';
+            }
+        }
+        
+        function displayCourses(courses) {
+            const coursesGrid = document.getElementById('coursesGrid');
+            
+            if (courses.length === 0) {
+                coursesGrid.innerHTML = '<div class="empty-state">No courses assigned yet</div>';
+                return;
+            }
+            
+            coursesGrid.innerHTML = courses.map(course => `
+                <div class="course-card" onclick="viewCourseDetails(${course.id})">
+                    <div class="course-header">
+                        <h3>${course.name}</h3>
+                        <span class="course-code">${course.code}</span>
+                    </div>
+                    <div class="course-body">
+                        <p><strong>Department:</strong> ${course.department_name}</p>
+                        <p><strong>Students:</strong> <span class="student-count">Loading...</span></p>
+                    </div>
+                    <div class="course-footer">
+                        <button class="btn-secondary">View Details</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Load student counts for each course
+            courses.forEach(course => {
+                loadStudentCount(course.id);
+            });
+        }
+        
+        async function loadStudentCount(courseId) {
+            try {
+                const response = await apiCall(`/events/courses/${courseId}`);
+                const count = response.course.student_count || 0;
+                
+                const elements = document.querySelectorAll(`.course-card[onclick="viewCourseDetails(${courseId})"] .student-count`);
+                elements.forEach(el => {
+                    el.textContent = count;
+                });
+            } catch (error) {
+                console.error(`Failed to load student count for course ${courseId}:`, error);
+            }
+        }
+        
+        function filterCourses() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            const filteredCourses = allCourses.filter(course => 
+                course.name.toLowerCase().includes(searchTerm) || 
+                course.code.toLowerCase().includes(searchTerm) ||
+                course.department_name.toLowerCase().includes(searchTerm)
+            );
+            
+            displayCourses(filteredCourses);
+        }
+        
+        async function viewCourseDetails(courseId) {
+            currentCourse = allCourses.find(c => c.id === courseId);
+            if (!currentCourse) return;
+            
+            document.getElementById('courseModalTitle').textContent = currentCourse.name;
+            
+            const detailsContainer = document.getElementById('courseDetailsContainer');
+            detailsContainer.innerHTML = `
+                <div class="course-info">
+                    <div class="info-group">
+                        <label>Course Code:</label>
+                        <p>${currentCourse.code}</p>
+                    </div>
+                    <div class="info-group">
+                        <label>Department:</label>
+                        <p>${currentCourse.department_name}</p>
+                    </div>
+                </div>
+            `;
+            
+            // Reset tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('.tab-btn').classList.add('active');
+            currentTab = 'students';
+            
+            // Load initial tab content
+            await loadTabContent('students', courseId);
+            
+            // Set up send alert button
+            document.getElementById('sendAlertBtn').onclick = () => {
+                window.location.href = `alerts.html?course=${courseId}`;
+            };
+            
+            document.getElementById('courseDetailsModal').style.display = 'flex';
+        }
+        
+        async function switchTab(tab) {
+            if (!currentCourse) return;
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            currentTab = tab;
+            await loadTabContent(tab, currentCourse.id);
+        }
+        
+        async function loadTabContent(tab, courseId) {
+            const tabContent = document.getElementById('tabContent');
+            tabContent.innerHTML = '<div class="loading">Loading...</div>';
+            
+            try {
+                switch (tab) {
+                    case 'students':
+                        await loadStudentsTab(courseId);
+                        break;
+                    case 'events':
+                        await loadEventsTab(courseId);
+                        break;
+                    case 'alerts':
+                        await loadAlertsTab(courseId);
+                        break;
+                }
+            } catch (error) {
+                console.error(`Failed to load ${tab} tab:`, error);
+                tabContent.innerHTML = `<div class="error">Failed to load ${tab}</div>`;
+            }
+        }
+        
+        async function loadStudentsTab(courseId) {
+            try {
+                const response = await apiCall(`/users/course/${courseId}/students`);
+                const students = response.students || [];
+                
+                const tabContent = document.getElementById('tabContent');
+                
+                if (students.length === 0) {
+                    tabContent.innerHTML = '<div class="empty-state">No students enrolled in this course</div>';
+                    return;
+                }
+                
+                tabContent.innerHTML = `
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${students.map(student => `
+                                    <tr>
+                                        <td>${student.name}</td>
+                                        <td>${student.email}</td>
+                                        <td>
+                                            <button class="btn-icon" onclick="sendIndividualAlert(${student.id})" title="Send Alert">📧</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Failed to load students:', error);
+                document.getElementById('tabContent').innerHTML = '<div class="error">Failed to load students</div>';
+            }
+        }
+        
+        async function loadEventsTab(courseId) {
+            try {
+                const response = await apiCall('/events');
+                const allEvents = response.events || [];
+                
+                // Filter events for this course
+                const courseEvents = allEvents.filter(event => 
+                    event.course_id === courseId
+                );
+                
+                const tabContent = document.getElementById('tabContent');
+                
+                if (courseEvents.length === 0) {
+                    tabContent.innerHTML = `
+                        <div class="empty-state">
+                            No events for this course
+                            <button class="btn-primary" onclick="createCourseEvent(${courseId})">Create Event</button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                tabContent.innerHTML = `
+                    <div class="events-container">
+                        <div class="table-actions">
+                            <button class="btn-primary" onclick="createCourseEvent(${courseId})">Create Event</button>
+                        </div>
+                        <div class="events-list">
+                            ${courseEvents.map(event => `
+                                <div class="event-item">
+                                    <div class="event-date">${formatDate(event.event_date)}</div>
+                                    <div class="event-details">
+                                        <h4>${event.title}</h4>
+                                        <p>${event.description || 'No description provided'}</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Failed to load events:', error);
+                document.getElementById('tabContent').innerHTML = '<div class="error">Failed to load events</div>';
+            }
+        }
+        
+        async function loadAlertsTab(courseId) {
+            try {
+                const response = await apiCall('/alerts/sent');
+                const allAlerts = response.alerts || [];
+                
+                // Filter alerts for this course
+                const courseAlerts = allAlerts.filter(alert => 
+                    alert.course_id === courseId
+                );
+                
+                const tabContent = document.getElementById('tabContent');
+                
+                if (courseAlerts.length === 0) {
+                    tabContent.innerHTML = '<div class="empty-state">No alerts sent for this course</div>';
+                    return;
+                }
+                
+                tabContent.innerHTML = `
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Recipients</th>
+                                    <th>Sent Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${courseAlerts.map(alert => `
+                                    <tr>
+                                        <td>${alert.subject}</td>
+                                        <td>${alert.recipient_count || 'Unknown'}</td>
+                                        <td>${formatDateTime(alert.sent_at)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Failed to load alerts:', error);
+                document.getElementById('tabContent').innerHTML = '<div class="error">Failed to load alerts</div>';
+            }
+        }
+        
+        function createCourseEvent(courseId) {
+            // Redirect to dashboard with course pre-selected for event creation
+            window.location.href = `dashboard.html?createEvent=true&courseId=${courseId}`;
+        }
+        
+        function sendIndividualAlert(studentId) {
+            // Redirect to alerts page with student pre-selected
+            window.location.href = `alerts.html?student=${studentId}`;
+        }
+        
+        function closeCourseModal() {
+            document.getElementById('courseDetailsModal').style.display = 'none';
+        }
+        
+        // Handle URL parameters for event creation
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const createEvent = urlParams.get('createEvent');
+            const courseId = urlParams.get('courseId');
+            
+            if (createEvent && courseId) {
+                // This would be handled in dashboard.js
+                // Just showing the logic here
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecturer Dashboard - Student Alert System</title>
+    <link rel="stylesheet" href="../css/lecturer.css">
+</head>
+<body>
+    <div class="lecturer-layout">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>🎓 Lecturer Panel</h2>
+                <p id="lecturerName">Loading...</p>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html" class="active">📊 Dashboard</a></li>
+                <li><a href="courses.html">📚 Courses</a></li>
+                <li><a href="students.html">👨‍🎓 Students</a></li>
+                <li><a href="alerts.html">🚨 Alerts</a></li>
+                <li><a href="#" onclick="logout()">🚪 Logout</a></li>
+            </ul>
+        </nav>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Lecturer Dashboard</h1>
+                <p>Welcome to your teaching portal</p>
+            </header>
+            
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📚</div>
+                    <div class="stat-info">
+                        <h3 id="totalCourses">0</h3>
+                        <p>Assigned Courses</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">👨‍🎓</div>
+                    <div class="stat-info">
+                        <h3 id="totalStudents">0</h3>
+                        <p>Total Students</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">🚨</div>
+                    <div class="stat-info">
+                        <h3 id="totalAlerts">0</h3>
+                        <p>Alerts Sent</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">📅</div>
+                    <div class="stat-info">
+                        <h3 id="upcomingEvents">0</h3>
+                        <p>Upcoming Events</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>📚 My Courses</h3>
+                        <a href="courses.html" class="btn-secondary">View All</a>
+                    </div>
+                    <div class="courses-list" id="coursesList">
+                        <div class="loading">Loading courses...</div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>📅 Upcoming Events</h3>
+                        <button class="btn-secondary" onclick="createEvent()">Add Event</button>
+                    </div>
+                    <div class="events-list" id="eventsList">
+                        <div class="loading">Loading events...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Alerts -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3>🚨 Recent Alerts</h3>
+                    <a href="alerts.html" class="btn-secondary">View All</a>
+                </div>
+                <div class="alerts-list" id="alertsList">
+                    <div class="loading">Loading recent alerts...</div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <h3>⚡ Quick Actions</h3>
+                <div class="actions-grid">
+                    <button class="action-btn" onclick="window.location.href='alerts.html'">
+                        <span class="action-icon">📢</span>
+                        <span>Send Alert</span>
+                    </button>
+                    
+                    <button class="action-btn" onclick="createEvent()">
+                        <span class="action-icon">📅</span>
+                        <span>Create Event</span>
+                    </button>
+                    
+                    <button class="action-btn" onclick="window.location.href='students.html'">
+                        <span class="action-icon">👨‍🎓</span>
+                        <span>View Students</span>
+                    </button>
+                    
+                    <button class="action-btn" onclick="window.location.href='courses.html'">
+                        <span class="action-icon">📚</span>
+                        <span>Manage Courses</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Create Event Modal -->
+    <div id="eventModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📅 Create New Event</h3>
+                <button class="modal-close" onclick="closeEventModal()">&times;</button>
+            </div>
+            
+            <form id="eventForm" class="modal-form">
+                <div class="form-group">
+                    <label for="eventTitle">Event Title *</label>
+                    <input type="text" id="eventTitle" name="title" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="eventDate">Event Date *</label>
+                        <input type="date" id="eventDate" name="eventDate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="eventType">Event Type *</label>
+                        <select id="eventType" name="eventType" required onchange="toggleCourseSelect()">
+                            <option value="course">Course Event</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="courseSelectGroup">
+                    <label for="courseSelect">Course *</label>
+                    <select id="courseSelect" name="courseId" required>
+                        <option value="">Select Course</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="eventDescription">Description</label>
+                    <textarea id="eventDescription" name="description" rows="4"></textarea>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeEventModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Create Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script src="../js/lecturer.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadDashboardData();
+        });
+        
+        async function loadDashboardData() {
+            try {
+                // Get lecturer ID from stored user data
+                const user = JSON.parse(localStorage.getItem('user'));
+                const lecturerId = user.id;
+                
+                // Load courses with student counts
+                const coursesResponse = await apiCall(`/users/lecturer/${lecturerId}/courses`);
+                const courses = coursesResponse.courses || [];
+                
+                // Load alerts
+                const alertsResponse = await apiCall('/alerts/sent');
+                const alerts = alertsResponse.alerts || [];
+                
+                // Load events
+                const eventsResponse = await apiCall('/events');
+                const events = eventsResponse.events || [];
+                
+                // Calculate total students across all courses
+                const totalStudents = courses.reduce((sum, course) => sum + (course.student_count || 0), 0);
+                
+                // Update stats
+                document.getElementById('totalCourses').textContent = courses.length;
+                document.getElementById('totalStudents').textContent = totalStudents;
+                document.getElementById('totalAlerts').textContent = alerts.length;
+                document.getElementById('upcomingEvents').textContent = events.length;
+                
+                // Display courses
+                displayCourses(courses);
+                
+                // Display events
+                displayEvents(events.slice(0, 5));
+                
+                // Display alerts
+                displayAlerts(alerts.slice(0, 5));
+                
+                // Populate course select dropdown
+                populateCourseSelect(courses);
+                
+            } catch (error) {
+                console.error('Failed to load dashboard data:', error);
+                showNotification('Failed to load dashboard data', 'error');
+            }
+        }
+        
+        function displayCourses(courses) {
+            const coursesList = document.getElementById('coursesList');
+            
+            if (courses.length === 0) {
+                coursesList.innerHTML = '<div class="empty-state">No courses assigned yet</div>';
+                return;
+            }
+            
+            coursesList.innerHTML = courses.map(course => `
+                <div class="course-item">
+                    <div class="course-code">${course.code}</div>
+                    <div class="course-details">
+                        <h4>${course.name}</h4>
+                        <p>${course.department_name}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function displayEvents(events) {
+            const eventsList = document.getElementById('eventsList');
+            
+            if (events.length === 0) {
+                eventsList.innerHTML = '<div class="empty-state">No upcoming events</div>';
+                return;
+            }
+            
+            eventsList.innerHTML = events.map(event => `
+                <div class="event-item">
+                    <div class="event-date">${formatDate(event.event_date)}</div>
+                    <div class="event-details">
+                        <h4>${event.title}</h4>
+                        <p>${event.course_name || 'Institution-wide'}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function displayAlerts(alerts) {
+            const alertsList = document.getElementById('alertsList');
+            
+            if (alerts.length === 0) {
+                alertsList.innerHTML = '<div class="empty-state">No alerts sent yet</div>';
+                return;
+            }
+            
+            alertsList.innerHTML = alerts.map(alert => `
+                <div class="alert-item">
+                    <div class="alert-icon">🚨</div>
+                    <div class="alert-details">
+                        <h4>${alert.subject}</h4>
+                        <p>Sent to: ${alert.recipient_type === 'all' ? 'All Students' : alert.course_name}</p>
+                        <small>${formatDateTime(alert.sent_at)}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function populateCourseSelect(courses) {
+            const courseSelect = document.getElementById('courseSelect');
+            courseSelect.innerHTML = '<option value="">Select Course</option>' +
+                courses.map(course => `<option value="${course.id}">${course.name} (${course.code})</option>`).join('');
+        }
+        
+        function createEvent() {
+            document.getElementById('eventForm').reset();
+            document.getElementById('eventModal').style.display = 'flex';
+            
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('eventDate').min = today;
+        }
+        
+        function closeEventModal() {
+            document.getElementById('eventModal').style.display = 'none';
+        }
+        
+        // Handle event form submission
+        document.getElementById('eventForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('eventTitle').value;
+            const eventDate = document.getElementById('eventDate').value;
+            const eventType = document.getElementById('eventType').value;
+            const courseId = document.getElementById('courseSelect').value;
+            const description = document.getElementById('eventDescription').value;
+            
+            try {
+                await apiCall('/events', 'POST', {
+                    title,
+                    description,
+                    eventDate,
+                    eventType,
+                    courseId
+                });
+                
+                showNotification('Event created successfully', 'success');
+                closeEventModal();
+                loadDashboardData();
+            } catch (error) {
+                showNotification('Failed to create event: ' + error.message, 'error');
+            }
+        });
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
