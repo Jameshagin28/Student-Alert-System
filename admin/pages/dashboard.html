@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Student Alert System</title>
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>🎓 Admin Panel</h2>
+                <p id="adminName">Loading...</p>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html" class="active">📊 Dashboard</a></li>
+                <li><a href="users.html">👥 Users</a></li>
+                <li><a href="courses.html">📚 Courses</a></li>
+                <li><a href="alerts.html">🚨 Alerts</a></li>
+                <li><a href="events.html">📅 Events</a></li>
+                <li><a href="#" onclick="logout()">🚪 Logout</a></li>
+            </ul>
+        </nav>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Dashboard Overview</h1>
+            
+            </header>
+            
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">👨‍🎓</div>
+                    <div class="stat-info">
+                        <h3 id="totalStudents">0</h3>
+                        <p>Total Students</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">👨‍🏫</div>
+                    <div class="stat-info">
+                        <h3 id="totalLecturers">0</h3>
+                        <p>Total Lecturers</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">📚</div>
+                    <div class="stat-info">
+                        <h3 id="totalCourses">0</h3>
+                        <p>Active Courses</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">🚨</div>
+                    <div class="stat-info">
+                        <h3 id="totalAlerts">0</h3>
+                        <p>Alerts Sent</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>📈 Recent Activity</h3>
+                        <button class="btn-secondary" onclick="refreshActivity()">Refresh</button>
+                    </div>
+                    <div class="activity-list" id="activityList">
+                        <div class="loading">Loading recent activity...</div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>📅 Upcoming Events</h3>
+                        <a href="events.html" class="btn-secondary">View All</a>
+                    </div>
+                    <div class="events-list" id="eventsList">
+                        <div class="loading">Loading upcoming events...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <h3>⚡ Quick Actions</h3>
+                <div class="actions-grid">
+                    <button class="action-btn" onclick="window.location.href='users.html'">
+                        <span class="action-icon">➕</span>
+                        <span>Add New User</span>
+                    </button>
+                    
+                    <button class="action-btn" onclick="window.location.href='alerts.html'">
+                        <span class="action-icon">📢</span>
+                        <span>Send Alert</span>
+                    </button>
+                    
+                    <button class="action-btn" onclick="window.location.href='courses.html'">
+                        <span class="action-icon">📚</span>
+                        <span>Manage Courses</span>
+                    </button>
+                    
+                    <button class="action-btn" onclick="window.location.href='events.html'">
+                        <span class="action-icon">📅</span>
+                        <span>Create Event</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="../js/admin.js"></script>
+    <script>
+        // Dashboard-specific functionality
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadDashboardData()
+        })
+        
+        async function loadDashboardData() {
+            try {
+                // Load statistics
+                const [students, lecturers, courses, events, alertsCount, logs] = await Promise.all([
+                    apiCall('/users/student'),
+                    apiCall('/users/lecturer'),
+                    apiCall('/events/courses'),
+                    apiCall('/events'),
+                    apiCall('/alerts/count'),
+                    apiCall('/logs/recent')
+                ])
+                
+                document.getElementById('totalStudents').textContent = students.users?.length || 0
+                document.getElementById('totalLecturers').textContent = lecturers.users?.length || 0
+                document.getElementById('totalCourses').textContent = courses.courses?.length || 0
+                document.getElementById('totalAlerts').textContent = alertsCount.count || 0
+                
+                // Load recent events
+                loadUpcomingEvents(events.events?.slice(0, 5) || [])
+                
+                // Load activity
+                loadRecentActivity(logs.logs || [])
+                
+            } catch (error) {
+                console.error('Failed to load dashboard data:', error)
+            }
+        }
+        
+        function loadUpcomingEvents(events) {
+            const eventsList = document.getElementById('eventsList')
+            
+            if (events.length === 0) {
+                eventsList.innerHTML = '<div class="empty-state">No upcoming events</div>'
+                return
+            }
+            
+            eventsList.innerHTML = events.map(event => `
+                <div class="event-item">
+                    <div class="event-date">${new Date(event.event_date).toLocaleDateString()}</div>
+                    <div class="event-details">
+                        <h4>${event.title}</h4>
+                        <p>${event.course_name || 'Institution-wide'}</p>
+                    </div>
+                </div>
+            `).join('')
+        }
+        
+        function loadRecentActivity(logs) {
+            const activityList = document.getElementById('activityList')
+            
+            if (logs.length === 0) {
+                activityList.innerHTML = '<div class="empty-state">No recent activities to display</div>'
+                return
+            }
+            
+            activityList.innerHTML = logs.map(log => `
+                <div class="activity-item">
+                    <div class="activity-icon">${getActivityIcon(log.action)}</div>
+                    <div class="activity-details">
+                        <div class="activity-header">
+                            <span class="activity-user">${log.user_name}</span>
+                            <span class="activity-time">${new Date(log.timestamp).toLocaleString()}</span>
+                        </div>
+                        <p class="activity-action">${log.details}</p>
+                    </div>
+                </div>
+            `).join('')
+        }
+        
+        function getActivityIcon(action) {
+            const icons = {
+                'LOGIN': '🔑',
+                'CREATE_USER': '👤',
+                'UPDATE_USER': '✏️',
+                'DELETE_USER': '🗑️',
+                'SEND_ALERT': '📢',
+                'CREATE_EVENT': '📅',
+                'CREATE_COURSE': '📚',
+                'UPDATE_COURSE': '✏️',
+                'DELETE_COURSE': '🗑️'
+            }
+            return icons[action] || '📝'
+        }
+        
+        function refreshActivity() {
+            document.getElementById('activityList').innerHTML = '<div class="loading">Refreshing...</div>'
+            loadDashboardData()
+        }
+    </script>
+</body>
+</html>

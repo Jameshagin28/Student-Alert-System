@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alert Management - Admin Panel</title>
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>🎓 Admin Panel</h2>
+                <p id="adminName">Loading...</p>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html">📊 Dashboard</a></li>
+                <li><a href="users.html">👥 Users</a></li>
+                <li><a href="courses.html">📚 Courses</a></li>
+                <li><a href="alerts.html" class="active">🚨 Alerts</a></li>
+                <li><a href="events.html">📅 Events</a></li>
+                <li><a href="#" onclick="logout()">🚪 Logout</a></li>
+            </ul>
+        </nav>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Alert Management</h1>
+                <button class="btn-primary" onclick="openSendAlertModal()">📢 Send New Alert</button>
+            </header>
+            
+            <!-- Alert Stats -->
+            <div class="alert-stats">
+                <div class="stat-card">
+                    <div class="stat-icon">📤</div>
+                    <div class="stat-info">
+                        <h3 id="totalSent">0</h3>
+                        <p>Total Sent</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <h3 id="totalRecipients">0</h3>
+                        <p>Recipients Reached</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">📅</div>
+                    <div class="stat-info">
+                        <h3 id="todayAlerts">0</h3>
+                        <p>Sent Today</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sent Alerts History -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>📋 Sent Alerts History</h3>
+                    <div class="table-actions">
+                        <select id="filterType" onchange="filterAlerts()">
+                            <option value="all">All Alerts</option>
+                            <option value="institution">Institution-wide</option>
+                            <option value="course">Course-specific</option>
+                        </select>
+                        <button class="btn-secondary" onclick="refreshAlerts()">🔄 Refresh</button>
+                    </div>
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Type</th>
+                            <th>Course</th>
+                            <th>Recipients</th>
+                            <th>Sent Date</th>
+                            <th>Sender</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alertsTableBody">
+                        <tr>
+                            <td colspan="7" class="loading">Loading alerts...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Send Alert Modal -->
+    <div id="sendAlertModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>📢 Send New Alert</h3>
+                <button class="modal-close" onclick="closeSendAlertModal()">&times;</button>
+            </div>
+            
+            <form id="alertForm" class="modal-form">
+                <div class="form-group">
+                    <label for="alertSubject">Subject *</label>
+                    <input type="text" id="alertSubject" name="subject" required placeholder="Enter alert subject">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="recipientType">Send To *</label>
+                        <select id="recipientType" name="recipientType" required onchange="toggleCourseSelect()">
+                            <option value="">Select Recipients</option>
+                            <option value="all">All Students</option>
+                            <option value="course">Specific Course</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="courseSelectGroup" style="display: none;">
+                        <label for="courseSelect">Course *</label>
+                        <select id="courseSelect" name="courseId">
+                            <option value="">Select Course</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="alertMessage">Message *</label>
+                    <textarea id="alertMessage" name="message" required rows="6" placeholder="Enter your alert message here..."></textarea>
+                    <small>Be clear and concise. This message will be sent via email to all selected recipients.</small>
+                </div>
+                
+                <div class="alert-preview" id="alertPreview" style="display: none;">
+                    <h4>📧 Email Preview</h4>
+                    <div class="preview-content">
+                        <div class="preview-header">
+                            <strong>Subject:</strong> <span id="previewSubject"></span>
+                        </div>
+                        <div class="preview-body">
+                            <strong>Message:</strong>
+                            <div id="previewMessage"></div>
+                        </div>
+                        <div class="preview-recipients">
+                            <strong>Recipients:</strong> <span id="previewRecipients"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="previewAlert()">👁️ Preview</button>
+                    <button type="button" class="btn-secondary" onclick="closeSendAlertModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="sendAlertBtn">📤 Send Alert</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Alert Details Modal -->
+    <div id="alertDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📋 Alert Details</h3>
+                <button class="modal-close" onclick="closeAlertDetailsModal()">&times;</button>
+            </div>
+            
+            <div class="alert-details" id="alertDetailsContent">
+                <!-- Alert details will be loaded here -->
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeAlertDetailsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="../js/admin.js"></script>
+    <script>
+        let currentAlerts = []
+        let courses = []
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadCourses()
+            await loadAlerts()
+        })
+        
+        async function loadCourses() {
+            try {
+                const response = await apiCall('/events/courses')
+                courses = response.courses || []
+                
+                const courseSelect = document.getElementById('courseSelect')
+                courseSelect.innerHTML = '<option value="">Select Course</option>' +
+                    courses.map(course => `<option value="${course.id}">${course.name} (${course.code})</option>`).join('')
+            } catch (error) {
+                console.error('Failed to load courses:', error)
+            }
+        }
+        
+        async function loadAlerts() {
+            const tableBody = document.getElementById('alertsTableBody')
+            tableBody.innerHTML = '<tr><td colspan="7" class="loading">Loading alerts...</td></tr>'
+            
+            try {
+                const response = await apiCall('/alerts/sent')
+                currentAlerts = response.alerts || []
+                displayAlerts(currentAlerts)
+                updateAlertStats()
+            } catch (error) {
+                console.error('Failed to load alerts:', error)
+                tableBody.innerHTML = '<tr><td colspan="7" class="error">Failed to load alerts</td></tr>'
+            }
+        }
+        
+        function displayAlerts(alerts) {
+            const tableBody = document.getElementById('alertsTableBody')
+            
+            if (alerts.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" class="empty-state">No alerts sent yet</td></tr>'
+                return
+            }
+            
+            tableBody.innerHTML = alerts.map(alert => `
+                <tr>
+                    <td>
+                        <div class="alert-subject">
+                            <strong>${alert.subject}</strong>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge ${alert.recipient_type === 'all' ? 'badge-primary' : 'badge-secondary'}">
+                            ${alert.recipient_type === 'all' ? 'Institution' : 'Course'}
+                        </span>
+                    </td>
+                    <td>${alert.course_name || 'All Courses'}</td>
+                    <td>${alert.recipient_count || 0}</td>
+                    <td>${new Date(alert.sent_at).toLocaleString()}</td>
+                    <td>${alert.sender_name || 'You'}</td>
+                    <td>
+                        <button class="btn-icon" onclick="viewAlertDetails(${alert.id})" title="View Details">👁️</button>
+                        <button class="btn-icon btn-danger" onclick="deleteAlert(${alert.id})" title="Delete Alert">🗑️</button>
+                    </td>
+                </tr>
+            `).join('')
+        }
+        
+        function updateAlertStats() {
+            document.getElementById('totalSent').textContent = currentAlerts.length
+            
+            const totalRecipients = currentAlerts.reduce((sum, alert) => sum + (alert.recipient_count || 0), 0)
+            document.getElementById('totalRecipients').textContent = totalRecipients
+            
+            const today = new Date().toDateString()
+            const todayAlerts = currentAlerts.filter(alert => 
+                new Date(alert.sent_at).toDateString() === today
+            ).length
+            document.getElementById('todayAlerts').textContent = todayAlerts
+        }
+        
+        function filterAlerts() {
+            const filterType = document.getElementById('filterType').value
+            
+            if (filterType === 'all') {
+                displayAlerts(currentAlerts)
+            } else {
+                const filteredAlerts = currentAlerts.filter(alert => {
+                    if (filterType === 'institution') return alert.recipient_type === 'all'
+                    if (filterType === 'course') return alert.recipient_type === 'course'
+                    return true
+                })
+                displayAlerts(filteredAlerts)
+            }
+        }
+        
+        function refreshAlerts() {
+            loadAlerts()
+        }
+        
+        function openSendAlertModal() {
+            document.getElementById('alertForm').reset()
+            document.getElementById('alertPreview').style.display = 'none'
+            document.getElementById('courseSelectGroup').style.display = 'none'
+            document.getElementById('sendAlertModal').style.display = 'flex'
+        }
+        
+        function closeSendAlertModal() {
+            document.getElementById('sendAlertModal').style.display = 'none'
+        }
+        
+        function toggleCourseSelect() {
+            const recipientType = document.getElementById('recipientType').value
+            const courseGroup = document.getElementById('courseSelectGroup')
+            const courseSelect = document.getElementById('courseSelect')
+            
+            if (recipientType === 'course') {
+                courseGroup.style.display = 'block'
+                courseSelect.required = true
+            } else {
+                courseGroup.style.display = 'none'
+                courseSelect.required = false
+                courseSelect.value = ''
+            }
+        }
+        
+        function previewAlert() {
+            const subject = document.getElementById('alertSubject').value
+            const message = document.getElementById('alertMessage').value
+            const recipientType = document.getElementById('recipientType').value
+            const courseId = document.getElementById('courseSelect').value
+            
+            if (!subject || !message || !recipientType) {
+                showNotification('Please fill in all required fields', 'error')
+                return
+            }
+            
+            document.getElementById('previewSubject').textContent = subject
+            document.getElementById('previewMessage').textContent = message
+            
+            let recipientText = ''
+            if (recipientType === 'all') {
+                recipientText = 'All Students'
+            } else if (recipientType === 'course' && courseId) {
+                const course = courses.find(c => c.id == courseId)
+                recipientText = course ? `Students in ${course.name}` : 'Selected Course'
+            }
+            
+            document.getElementById('previewRecipients').textContent = recipientText
+            document.getElementById('alertPreview').style.display = 'block'
+        }
+        
+        async function viewAlertDetails(alertId) {
+            const alert = currentAlerts.find(a => a.id === alertId)
+            if (!alert) return
+            
+            const detailsContent = document.getElementById('alertDetailsContent')
+            detailsContent.innerHTML = `
+                <div class="detail-group">
+                    <label>Subject:</label>
+                    <p>${alert.subject}</p>
+                </div>
+                
+                <div class="detail-group">
+                    <label>Message:</label>
+                    <p>${alert.message}</p>
+                </div>
+                
+                <div class="detail-group">
+                    <label>Recipient Type:</label>
+                    <p>${alert.recipient_type === 'all' ? 'All Students' : 'Course-specific'}</p>
+                </div>
+                
+                ${alert.course_name ? `
+                <div class="detail-group">
+                    <label>Course:</label>
+                    <p>${alert.course_name}</p>
+                </div>
+                ` : ''}
+                
+                <div class="detail-group">
+                    <label>Recipients:</label>
+                    <p>${alert.recipient_count || 0} students</p>
+                </div>
+                
+                <div class="detail-group">
+                    <label>Sent By:</label>
+                    <p>${alert.sender_name || 'You'}</p>
+                </div>
+                
+                <div class="detail-group">
+                    <label>Sent Date:</label>
+                    <p>${new Date(alert.sent_at).toLocaleString()}</p>
+                </div>
+            `
+            
+            document.getElementById('alertDetailsModal').style.display = 'flex'
+        }
+        
+        function closeAlertDetailsModal() {
+            document.getElementById('alertDetailsModal').style.display = 'none'
+        }
+        
+        // Handle alert form submission
+        document.getElementById('alertForm').addEventListener('submit', async (e) => {
+            e.preventDefault()
+            
+            const formData = new FormData(e.target)
+            const alertData = Object.fromEntries(formData.entries())
+            
+            const sendBtn = document.getElementById('sendAlertBtn')
+            const originalText = sendBtn.textContent
+            
+            try {
+                sendBtn.textContent = '📤 Sending...'
+                sendBtn.disabled = true
+                
+                await apiCall('/alerts/send', 'POST', alertData)
+                showNotification('Alert sent successfully!', 'success')
+                closeSendAlertModal()
+                refreshAlerts()
+            } catch (error) {
+                showNotification('Failed to send alert: ' + error.message, 'error')
+            } finally {
+                sendBtn.textContent = originalText
+                sendBtn.disabled = false
+            }
+        })
+        
+        // Close modals when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none'
+            }
+        })
+        
+        async function deleteAlert(alertId) {
+            if (!confirm('Are you sure you want to delete this alert? This action cannot be undone.')) {
+                return
+            }
+            
+            try {
+                await apiCall(`/alerts/${alertId}`, 'DELETE')
+                showNotification('Alert deleted successfully', 'success')
+                refreshAlerts()
+            } catch (error) {
+                showNotification('Failed to delete alert: ' + error.message, 'error')
+            }
+        }
+    </script>
+</body>
+</html>

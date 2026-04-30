@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Events Management - Student Alert System</title>
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>🎓 Admin Panel</h2>
+                <p id="adminName">Loading...</p>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html">📊 Dashboard</a></li>
+                <li><a href="users.html">👥 Users</a></li>
+                <li><a href="courses.html">📚 Courses</a></li>
+                <li><a href="alerts.html">🚨 Alerts</a></li>
+                <li><a href="events.html" class="active">📅 Events</a></li>
+                <li><a href="#" onclick="logout()">🚪 Logout</a></li>
+            </ul>
+        </nav>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Events Management</h1>
+                <button class="btn-primary" onclick="showAddEventModal()">Create New Event</button>
+            </header>
+            
+            <!-- Events Calendar View -->
+            <div class="content-card">
+                <div class="card-header">
+                    <h3>📅 Events Calendar</h3>
+                    <div class="view-controls">
+                        <button class="btn-secondary active" onclick="switchView('calendar')">Calendar</button>
+                        <button class="btn-secondary" onclick="switchView('list')">List</button>
+                    </div>
+                </div>
+                
+                <div id="calendarView" class="calendar-container">
+                    <div class="calendar-header">
+                        <button class="btn-icon" onclick="previousMonth()">◀</button>
+                        <h3 id="currentMonth">Loading...</h3>
+                        <button class="btn-icon" onclick="nextMonth()">▶</button>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid">
+                        <div class="loading">Loading calendar...</div>
+                    </div>
+                </div>
+                
+                <div id="listView" class="list-container" style="display: none;">
+                    <div class="search-box">
+                        <input type="text" id="eventSearch" placeholder="Search events...">
+                        <button class="btn-secondary" onclick="searchEvents()">Search</button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Course</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="eventsTableBody">
+                                <tr>
+                                    <td colspan="6" class="loading">Loading events...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Event Modal -->
+    <div id="addEventModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Event</h2>
+                <span class="close" onclick="closeAddEventModal()">&times;</span>
+            </div>
+            <form id="addEventForm" onsubmit="handleAddEvent(event)">
+                <div class="form-group">
+                    <label for="eventTitle">Event Title</label>
+                    <input type="text" id="eventTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="eventDate">Date</label>
+                    <input type="datetime-local" id="eventDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="eventType">Event Type</label>
+                    <select id="eventType" required onchange="toggleCourseSelect()">
+                        <option value="">Select Type</option>
+                        <option value="course">Course Event</option>
+                        <option value="institution">Institution Event</option>
+                    </select>
+                </div>
+                <div class="form-group" id="courseSelectGroup" style="display: none;">
+                    <label for="eventCourse">Course</label>
+                    <select id="eventCourse">
+                        <option value="">Select Course</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="eventDescription">Description</label>
+                    <textarea id="eventDescription" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeAddEventModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Create Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Edit Event Modal -->
+    <div id="editEventModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Event</h2>
+                <span class="close" onclick="closeEditEventModal()">&times;</span>
+            </div>
+            <form id="editEventForm" onsubmit="handleEditEvent(event)">
+                <input type="hidden" id="editEventId">
+                <div class="form-group">
+                    <label for="editEventTitle">Event Title</label>
+                    <input type="text" id="editEventTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEventDate">Date</label>
+                    <input type="datetime-local" id="editEventDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEventType">Event Type</label>
+                    <select id="editEventType" required onchange="toggleEditCourseSelect()">
+                        <option value="">Select Type</option>
+                        <option value="course">Course Event</option>
+                        <option value="institution">Institution Event</option>
+                    </select>
+                </div>
+                <div class="form-group" id="editCourseSelectGroup" style="display: none;">
+                    <label for="editEventCourse">Course</label>
+                    <select id="editEventCourse">
+                        <option value="">Select Course</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editEventDescription">Description</label>
+                    <textarea id="editEventDescription" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeEditEventModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Update Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Registrations Modal -->
+    <div id="registrationsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Event Registrations</h2>
+                <span class="close" onclick="closeRegistrationsModal()">&times;</span>
+            </div>
+            <div class="registrations-list" id="registrationsList">
+                <div class="loading">Loading registrations...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Day Events Modal -->
+    <div id="dayEventsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="dayEventsTitle">Events for <span id="selectedDate"></span></h2>
+                <span class="close" onclick="closeDayEventsModal()">&times;</span>
+            </div>
+            <div class="day-events-container" id="dayEventsList">
+                <div class="loading">Loading events...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/admin.js"></script>
+    <script>
+        let currentDate = new Date()
+        let currentView = 'calendar'
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadEvents()
+            await loadCourses()
+            updateCalendarHeader()
+            renderCalendar()
+        })
+
+        function switchView(view) {
+            currentView = view
+            document.getElementById('calendarView').style.display = view === 'calendar' ? 'block' : 'none'
+            document.getElementById('listView').style.display = view === 'list' ? 'block' : 'none'
+            
+            // Update active button
+            document.querySelectorAll('.view-controls .btn-secondary').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent.toLowerCase() === view)
+            })
+        }
+
+        function updateCalendarHeader() {
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                          'July', 'August', 'September', 'October', 'November', 'December']
+            document.getElementById('currentMonth').textContent = 
+                `${months[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+        }
+
+        function previousMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1)
+            updateCalendarHeader()
+            renderCalendar()
+        }
+
+        function nextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1)
+            updateCalendarHeader()
+            renderCalendar()
+        }
+
+        async function renderCalendar() {
+            const grid = document.getElementById('calendarGrid')
+            const year = currentDate.getFullYear()
+            const month = currentDate.getMonth()
+            
+            // Get first day of month and total days
+            const firstDay = new Date(year, month, 1)
+            const lastDay = new Date(year, month + 1, 0)
+            const totalDays = lastDay.getDate()
+            
+            // Create calendar grid
+            let html = ''
+            
+            // Add day headers
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+            days.forEach(day => {
+                html += `<div class="calendar-day-header">${day}</div>`
+            })
+            
+            // Add empty cells for days before first of month
+            for (let i = 0; i < firstDay.getDay(); i++) {
+                html += '<div class="calendar-day empty"></div>'
+            }
+            
+            // Add days of month
+            for (let day = 1; day <= totalDays; day++) {
+                const date = new Date(year, month, day)
+                const events = await getEventsForDate(date)
+                
+                html += `
+                    <div class="calendar-day ${events.length > 0 ? 'has-events' : ''}" 
+                         onclick="showDayEvents('${date.toISOString()}')">
+                        <span class="day-number">${day}</span>
+                        ${events.length > 0 ? `<span class="event-indicator">${events.length}</span>` : ''}
+                    </div>
+                `
+            }
+            
+            grid.innerHTML = html
+        }
+
+        async function getEventsForDate(date) {
+            try {
+                const response = await apiCall('/events')
+                const events = response.events || []
+                return events.filter(event => {
+                    const eventDate = new Date(event.event_date)
+                    return eventDate.toDateString() === date.toDateString()
+                })
+            } catch (error) {
+                console.error('Failed to get events for date:', error)
+                return []
+            }
+        }
+
+        async function loadEvents() {
+            try {
+                const response = await apiCall('/events')
+                const events = response.events || []
+                
+                const tableBody = document.getElementById('eventsTableBody')
+                if (events.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="6" class="empty-state">No events found</td></tr>'
+                    return
+                }
+
+                tableBody.innerHTML = events.map(event => `
+                    <tr>
+                        <td>${new Date(event.event_date).toLocaleString()}</td>
+                        <td>${event.title}</td>
+                        <td>${event.event_type}</td>
+                        <td>${event.course_name || 'All Courses'}</td>
+                        <td><span class="status-badge ${getEventStatus(event)}">${getEventStatus(event)}</span></td>
+                        <td>
+                            <button class="btn-icon" onclick="viewRegistrations('${event.id}')">👥</button>
+                            <button class="btn-icon" onclick="editEvent('${event.id}')">✏️</button>
+                            <button class="btn-icon" onclick="deleteEvent('${event.id}')">🗑️</button>
+                        </td>
+                    </tr>
+                `).join('')
+            } catch (error) {
+                console.error('Failed to load events:', error)
+                document.getElementById('eventsTableBody').innerHTML = 
+                    '<tr><td colspan="6" class="error-state">Failed to load events</td></tr>'
+            }
+        }
+
+        async function loadCourses() {
+            try {
+                const response = await apiCall('/events/courses')
+                const courses = response.courses || []
+                const select = document.getElementById('eventCourse')
+                
+                select.innerHTML = '<option value="">All Courses</option>' +
+                    courses.map(course => 
+                        `<option value="${course.id}">${course.name}</option>`
+                    ).join('')
+            } catch (error) {
+                console.error('Failed to load courses:', error)
+            }
+        }
+
+        function showAddEventModal() {
+            document.getElementById('addEventModal').style.display = 'block'
+        }
+
+        function closeAddEventModal() {
+            document.getElementById('addEventModal').style.display = 'none'
+            document.getElementById('addEventForm').reset()
+        }
+
+        async function handleAddEvent(event) {
+            event.preventDefault()
+            
+            const eventData = {
+                title: document.getElementById('eventTitle').value,
+                eventDate: document.getElementById('eventDate').value,
+                eventType: document.getElementById('eventType').value,
+                courseId: document.getElementById('eventCourse').value || null,
+                description: document.getElementById('eventDescription').value
+            }
+
+            try {
+                await apiCall('/events', 'POST', eventData)
+                closeAddEventModal()
+                await loadEvents()
+                if (currentView === 'calendar') {
+                    renderCalendar()
+                }
+                showNotification('Event created successfully', 'success')
+            } catch (error) {
+                console.error('Failed to add event:', error)
+                showNotification(error.message || 'Failed to add event. Please try again.', 'error')
+            }
+        }
+
+        function toggleEditCourseSelect() {
+            const eventType = document.getElementById('editEventType').value;
+            const courseGroup = document.getElementById('editCourseSelectGroup');
+            const courseSelect = document.getElementById('editEventCourse');
+            
+            if (eventType === 'course') {
+                courseGroup.style.display = 'block';
+                courseSelect.required = true;
+            } else {
+                courseGroup.style.display = 'none';
+                courseSelect.required = false;
+                courseSelect.value = '';
+            }
+        }
+
+        async function editEvent(eventId) {
+            try {
+                const response = await apiCall(`/events/${eventId}`)
+                const event = response.event
+
+                document.getElementById('editEventId').value = event.id
+                document.getElementById('editEventTitle').value = event.title
+                document.getElementById('editEventDate').value = event.event_date.slice(0, 16) // Format for datetime-local input
+                document.getElementById('editEventType').value = event.event_type
+                document.getElementById('editEventCourse').value = event.course_id || ''
+                document.getElementById('editEventDescription').value = event.description || ''
+
+                // Show/hide course select based on event type
+                toggleEditCourseSelect()
+
+                document.getElementById('editEventModal').style.display = 'block'
+            } catch (error) {
+                console.error('Failed to load event:', error)
+                showNotification(error.message || 'Failed to load event details', 'error')
+            }
+        }
+
+        function closeEditEventModal() {
+            document.getElementById('editEventModal').style.display = 'none'
+            document.getElementById('editEventForm').reset()
+        }
+
+        async function handleEditEvent(event) {
+            event.preventDefault()
+            
+            const eventId = document.getElementById('editEventId').value
+            const eventData = {
+                title: document.getElementById('editEventTitle').value,
+                event_date: document.getElementById('editEventDate').value,
+                event_type: document.getElementById('editEventType').value,
+                course_id: document.getElementById('editEventCourse').value || null,
+                description: document.getElementById('editEventDescription').value
+            }
+
+            try {
+                await apiCall(`/events/${eventId}`, 'PUT', eventData)
+                showNotification('Event updated successfully', 'success')
+                closeEditEventModal()
+                await loadEvents()
+                if (currentView === 'calendar') {
+                    renderCalendar()
+                }
+            } catch (error) {
+                console.error('Failed to update event:', error)
+                showNotification(error.message || 'Failed to update event', 'error')
+            }
+        }
+
+        async function deleteEvent(eventId) {
+            if (!confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+                return
+            }
+
+            try {
+                await apiCall(`/events/${eventId}`, 'DELETE')
+                showNotification('Event deleted successfully', 'success')
+                await loadEvents()
+                if (currentView === 'calendar') {
+                    renderCalendar()
+                }
+            } catch (error) {
+                console.error('Failed to delete event:', error)
+                showNotification('Failed to delete event', 'error')
+            }
+        }
+
+        async function showDayEvents(date) {
+            const selectedDate = new Date(date)
+            const formattedDate = selectedDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            })
+            
+            document.getElementById('selectedDate').textContent = formattedDate
+            document.getElementById('dayEventsModal').style.display = 'block'
+            
+            try {
+                const response = await apiCall('/events')
+                const events = response.events || []
+                const dayEvents = events.filter(event => {
+                    const eventDate = new Date(event.event_date)
+                    return eventDate.toDateString() === selectedDate.toDateString()
+                })
+                
+                const list = document.getElementById('dayEventsList')
+                if (dayEvents.length === 0) {
+                    list.innerHTML = '<div class="empty-state">No events scheduled for this day</div>'
+                    return
+                }
+
+                list.innerHTML = dayEvents.map(event => `
+                    <div class="day-event-card">
+                        <div class="event-time">
+                            ${new Date(event.event_date).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}
+                        </div>
+                        <div class="event-details">
+                            <h3>${event.title}</h3>
+                            <div class="event-meta">
+                                <span class="event-type ${event.event_type}">${event.event_type}</span>
+                                ${event.course_name ? `<span class="event-course">${event.course_name}</span>` : ''}
+                            </div>
+                            ${event.description ? `<p class="event-description">${event.description}</p>` : ''}
+                            <div class="event-actions">
+                                <button class="btn-secondary" onclick="viewRegistrations('${event.id}')">
+                                    View Registrations
+                                </button>
+                                <button class="btn-secondary" onclick="editEvent('${event.id}')">
+                                    Edit Event
+                                </button>
+                                <button class="btn-danger" onclick="deleteEvent('${event.id}')">
+                                    Delete Event
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')
+            } catch (error) {
+                console.error('Failed to load day events:', error)
+                document.getElementById('dayEventsList').innerHTML = 
+                    '<div class="error-state">Failed to load events for this day</div>'
+            }
+        }
+
+        function closeDayEventsModal() {
+            document.getElementById('dayEventsModal').style.display = 'none'
+        }
+
+        function searchEvents() {
+            const searchTerm = document.getElementById('eventSearch').value.toLowerCase()
+            const rows = document.querySelectorAll('#eventsTableBody tr')
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase()
+                row.style.display = text.includes(searchTerm) ? '' : 'none'
+            })
+        }
+
+        async function viewRegistrations(eventId) {
+            try {
+                const response = await apiCall(`/events/${eventId}/registrations`)
+                const registrations = response.registrations || []
+                
+                const list = document.getElementById('registrationsList')
+                if (registrations.length === 0) {
+                    list.innerHTML = '<div class="empty-state">No registrations found</div>'
+                    return
+                }
+
+                list.innerHTML = registrations.map(reg => `
+                    <div class="registration-item">
+                        <div class="user-info">
+                            <span class="user-name">${reg.user_name}</span>
+                            <span class="user-email">${reg.email}</span>
+                        </div>
+                        <div class="registration-info">
+                            <span class="registration-date">Registered: ${new Date(reg.registered_at).toLocaleString()}</span>
+                            <span class="registration-status ${reg.status}">${reg.status}</span>
+                        </div>
+                    </div>
+                `).join('')
+
+                document.getElementById('registrationsModal').style.display = 'block'
+            } catch (error) {
+                console.error('Failed to load registrations:', error)
+                showNotification('Failed to load registrations', 'error')
+            }
+        }
+
+        function closeRegistrationsModal() {
+            document.getElementById('registrationsModal').style.display = 'none'
+        }
+
+        function toggleCourseSelect() {
+            const eventType = document.getElementById('eventType').value;
+            const courseGroup = document.getElementById('courseSelectGroup');
+            const courseSelect = document.getElementById('eventCourse');
+            
+            if (eventType === 'course') {
+                courseGroup.style.display = 'block';
+                courseSelect.required = true;
+            } else {
+                courseGroup.style.display = 'none';
+                courseSelect.required = false;
+                courseSelect.value = '';
+            }
+        }
+
+        function getEventStatus(event) {
+            const now = new Date()
+            const eventDate = new Date(event.event_date)
+            
+            if (eventDate < now) {
+                return 'completed'
+            } else if (eventDate.getTime() - now.getTime() < 24 * 60 * 60 * 1000) { // Within 24 hours
+                return 'upcoming'
+            } else {
+                return 'scheduled'
+            }
+        }
+
+        // Add notification styles
+        const style = document.createElement('style')
+        style.textContent = `
+            .registration-item {
+                padding: 12px;
+                border-bottom: 1px solid #e5e7eb;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .user-info {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .user-name {
+                font-weight: 500;
+                color: #111827;
+            }
+
+            .user-email {
+                font-size: 0.875rem;
+                color: #6b7280;
+            }
+
+            .registration-info {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-end;
+            }
+
+            .registration-date {
+                font-size: 0.875rem;
+                color: #6b7280;
+            }
+
+            .registration-status {
+                padding: 4px 8px;
+                border-radius: 9999px;
+                font-size: 0.75rem;
+                font-weight: 500;
+            }
+
+            .registration-status.registered {
+                background-color: #dbeafe;
+                color: #1e40af;
+            }
+
+            .registration-status.attended {
+                background-color: #dcfce7;
+                color: #166534;
+            }
+
+            .registration-status.cancelled {
+                background-color: #fee2e2;
+                color: #991b1b;
+            }
+        `
+        document.head.appendChild(style)
+
+        // Add status badge styles
+        const statusStyles = document.createElement('style')
+        statusStyles.textContent = `
+            .status-badge {
+                padding: 4px 8px;
+                border-radius: 9999px;
+                font-size: 0.75rem;
+                font-weight: 500;
+                text-transform: capitalize;
+            }
+
+            .status-badge.completed {
+                background-color: #e5e7eb;
+                color: #374151;
+            }
+
+            .status-badge.upcoming {
+                background-color: #fef3c7;
+                color: #92400e;
+            }
+
+            .status-badge.scheduled {
+                background-color: #dbeafe;
+                color: #1e40af;
+            }
+        `
+        document.head.appendChild(statusStyles)
+
+        // Add day events styles
+        const dayEventsStyles = document.createElement('style')
+        dayEventsStyles.textContent = `
+            .day-events-container {
+                max-height: 70vh;
+                overflow-y: auto;
+                padding: 1rem;
+            }
+
+            .day-event-card {
+                display: flex;
+                gap: 1rem;
+                padding: 1rem;
+                border: 1px solid #e5e7eb;
+                border-radius: 0.5rem;
+                margin-bottom: 1rem;
+                background-color: white;
+            }
+
+            .event-time {
+                min-width: 80px;
+                padding: 0.5rem;
+                background-color: #f3f4f6;
+                border-radius: 0.375rem;
+                text-align: center;
+                font-weight: 500;
+                color: #374151;
+            }
+
+            .event-details {
+                flex: 1;
+            }
+
+            .event-details h3 {
+                margin: 0 0 0.5rem 0;
+                color: #111827;
+            }
+
+            .event-meta {
+                display: flex;
+                gap: 0.5rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .event-type {
+                padding: 0.25rem 0.5rem;
+                border-radius: 9999px;
+                font-size: 0.75rem;
+                font-weight: 500;
+                text-transform: capitalize;
+            }
+
+            .event-type.course {
+                background-color: #dbeafe;
+                color: #1e40af;
+            }
+
+            .event-type.institution {
+                background-color: #fef3c7;
+                color: #92400e;
+            }
+
+            .event-course {
+                padding: 0.25rem 0.5rem;
+                background-color: #e5e7eb;
+                border-radius: 9999px;
+                font-size: 0.75rem;
+                color: #374151;
+            }
+
+            .event-description {
+                margin: 0.5rem 0;
+                color: #4b5563;
+                font-size: 0.875rem;
+            }
+
+            .event-actions {
+                display: flex;
+                gap: 0.5rem;
+                margin-top: 1rem;
+            }
+
+            .btn-danger {
+                background-color: #fee2e2;
+                color: #991b1b;
+                border: 1px solid #fecaca;
+            }
+
+            .btn-danger:hover {
+                background-color: #fecaca;
+            }
+
+            .empty-state, .error-state {
+                text-align: center;
+                padding: 2rem;
+                color: #6b7280;
+            }
+
+            .error-state {
+                color: #991b1b;
+            }
+        `
+        document.head.appendChild(dayEventsStyles)
+    </script>
+</body>
+</html> 
